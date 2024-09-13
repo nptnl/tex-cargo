@@ -15,6 +15,16 @@ r#"\usepackage{xcolor}
 r#"\usepackage{xcolor}
 \pagecolor[rgb]{0,0,0}
 \color[rgb]{1,1,1}"#;
+    let wide_string =
+r#"\usepackage{geometry}
+\geometry{margin=0.75in}
+\geometry{tmargin=0.75in}
+\geometry{bmargin=1in}"#;
+    let thin_string =
+r#"\usepackage{geometry}
+\geometry{margin=1.25in}
+\geometry{tmargin=1.25in}
+\geometry{bmargin=1.5in}"#;
 
     match command.as_str() {
         "new" => {
@@ -44,6 +54,14 @@ r#"\usepackage{xcolor}
             colorfile.write_all(dark_string.as_bytes()).expect("failed to darkenize ld.sty");
             println!("dark mode activated, night night");
         },
+        "wide" => {
+            let mut geofile = File::create("geo.sty").expect("failed to open geometry file");
+            geofile.write_all(wide_string.as_bytes()).expect("failed to hit the gym consistently :/");
+        },
+        "thin" => {
+            let mut geofile = File::create("geo.sty").expect("failed to open geometry file");
+            geofile.write_all(thin_string.as_bytes()).expect("failed to cut that belly fat :/");
+        },
         _ => (),
     }
 }
@@ -66,6 +84,11 @@ fn new(name: String) -> Result<(), i32> {
         Ok(v) => v,
         Err(_) => return Err(3),
     };
+    let mut geo_file =
+    match File::create(path.clone() + "/geo.sty") {
+        Ok(v) => v,
+        Err(_) => return Err(4),
+    };
 
     let lib_preamble = 
 
@@ -73,6 +96,7 @@ r#"\usepackage{amssymb}
 \usepackage{amsmath}
 \usepackage{mathunicode}
 \usepackage{ld}
+\usepackage{geo}
 
 "#;
 
@@ -91,6 +115,11 @@ r#"\documentclass[10pt]{article}
 r#"\usepackage{xcolor}
 \pagecolor[rgb]{1,1,1}
 \color[rgb]{0,0,0}"#;
+    let geo_preamble =
+r#"\usepackage{geometry}
+\geometry{margin=1.25in}
+\geometry{tmargin=1.25in}
+\geometry{bmargin=1.5in}"#;
 
     match main_file.write_all(main_preamble.as_bytes()) {
         Ok(_) => (),
@@ -103,6 +132,10 @@ r#"\usepackage{xcolor}
     match ld_file.write_all(ld_preamble.as_bytes()) {
         Ok(_) => (),
         Err(_) => return Err(13),
+    };
+    match geo_file.write_all(geo_preamble.as_bytes()) {
+        Ok(_) => (),
+        Err(_) => return Err(14),
     };
     Ok(())
 }
