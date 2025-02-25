@@ -98,6 +98,9 @@ r#"\usepackage{amssymb}
 \usepackage{ld}
 \usepackage{geo}
 
+\usepackage{graphicx}
+\graphicspath{{.}}
+
 "#;
 
     let main_preamble = 
