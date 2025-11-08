@@ -39,6 +39,13 @@ r#"
 \geometry{tmargin=1.25in}
 \geometry{bmargin=1.5in}
 "#;
+    let prev_section =
+r#"
+\usepackage[active,tightpage]{preview}
+\renewcommand{\PreviewBorder}{0.75in}
+\newcommand{\Newpage}{\end{preview}\begin{preview}}
+"#;
+    let nprev_section = "\n";
 
     match command.as_str() {
         "new" => {
@@ -83,6 +90,18 @@ r#"
         "thin" => {
             match replace_section("./lib.sty", "% --- GEO START", "% --- GEO END", thin_section) {
                 Ok(()) => println!("thin margins activated"),
+                Err(e) => println!("error updating lib.sty: {}", e),
+            }
+        },
+        "prev" => {
+            match replace_section("./lib.sty", "% --- PREV START", "% --- PREV END", prev_section) {
+                Ok(()) => println!("infinitely expanding pages activated."),
+                Err(e) => println!("error updating lib.sty: {}", e),
+            }
+        },
+        "nprev" => {
+            match replace_section("./lib.sty", "% --- PREV START", "% --- PREV END", nprev_section) {
+                Ok(()) => println!("normal page length restored."),
                 Err(e) => println!("error updating lib.sty: {}", e),
             }
         },
@@ -133,9 +152,6 @@ r#"% --- auto generated, don't mess with the markers
 \usepackage{graphicx}
 \graphicspath{{.}}
 
-\usepackage[active,tightpage]{preview}
-\renewcommand{\PreviewBorder}{0.75in}
-
 % --- LD START
 \usepackage{xcolor}
 \pagecolor[rgb]{1,1,1}
@@ -148,6 +164,9 @@ r#"% --- auto generated, don't mess with the markers
 \geometry{tmargin=1.25in}
 \geometry{bmargin=1.5in}
 % --- GEO END
+
+% --- PREV START
+% --- PREV END
 
 % --- extra stuff
 
