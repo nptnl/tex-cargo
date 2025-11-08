@@ -1,33 +1,51 @@
-use std::fs::{File, create_dir};
+// ...existing code...
+use std::fs::{File, create_dir_all, read_to_string, write};
 use std::io::Write;
 use std::process::Command;
 
 fn main () {
     println!("henlo");
     let args: Vec<String> = std::env::args().collect();
+    if args.len() < 2 {
+        println!("usage: tex-cargo <new|build|run|light|dark|wide|thin> [name]");
+        return;
+    }
     let command: String = args[1].clone();
 
-    let light_string =
-r#"\usepackage{xcolor}
+    // Section contents (only the inner content for replacement)
+    let light_section =
+r#"
+\usepackage{xcolor}
 \pagecolor[rgb]{1,1,1}
-\color[rgb]{0,0,0}"#;
-    let dark_string = 
-r#"\usepackage{xcolor}
+\color[rgb]{0,0,0}
+"#;
+    let dark_section = 
+r#"
+\usepackage{xcolor}
 \pagecolor[rgb]{0,0,0}
-\color[rgb]{1,1,1}"#;
-    let wide_string =
-r#"\usepackage{geometry}
+\color[rgb]{1,1,1}
+"#;
+    let wide_section =
+r#"
+\usepackage{geometry}
 \geometry{margin=0.75in}
 \geometry{tmargin=0.75in}
-\geometry{bmargin=1in}"#;
-    let thin_string =
-r#"\usepackage{geometry}
+\geometry{bmargin=1in}
+"#;
+    let thin_section =
+r#"
+\usepackage{geometry}
 \geometry{margin=1.25in}
 \geometry{tmargin=1.25in}
-\geometry{bmargin=1.5in}"#;
+\geometry{bmargin=1.5in}
+"#;
 
     match command.as_str() {
         "new" => {
+            if args.len() < 3 {
+                println!("please provide a project name");
+                return;
+            }
             let res = new(args[2].clone());
             match res {
                 Ok(()) => println!("new LaTeX project '{}' created.", args[2].clone()),
@@ -45,61 +63,93 @@ r#"\usepackage{geometry}
             println!("pdf opened with {cmd}");
         },
         "light" => {
-            let mut colorfile = File::create("./ld.sty").expect("failed to open light-dark file");
-            colorfile.write_all(light_string.as_bytes()).expect("failed to lightenize ld.sty");
-            println!("rise + shine! light mode activated");
+            match replace_section("./lib.sty", "% --- LD START", "% --- LD END", light_section) {
+                Ok(()) => println!("rise + shine! light mode activated"),
+                Err(e) => println!("error updating lib.sty: {}", e),
+            }
         },
         "dark" => {
-            let mut colorfile = File::create("./ld.sty").expect("failed to open light-dark file");
-            colorfile.write_all(dark_string.as_bytes()).expect("failed to darkenize ld.sty");
-            println!("dark mode activated, night night");
+            match replace_section("./lib.sty", "% --- LD START", "% --- LD END", dark_section) {
+                Ok(()) => println!("dark mode activated, night night"),
+                Err(e) => println!("error updating lib.sty: {}", e),
+            }
         },
         "wide" => {
-            let mut geofile = File::create("geo.sty").expect("failed to open geometry file");
-            geofile.write_all(wide_string.as_bytes()).expect("failed to hit the gym consistently :/");
+            match replace_section("./lib.sty", "% --- GEO START", "% --- GEO END", wide_section) {
+                Ok(()) => println!("wide margins activated"),
+                Err(e) => println!("error updating lib.sty: {}", e),
+            }
         },
         "thin" => {
-            let mut geofile = File::create("geo.sty").expect("failed to open geometry file");
-            geofile.write_all(thin_string.as_bytes()).expect("failed to cut that belly fat :/");
+            match replace_section("./lib.sty", "% --- GEO START", "% --- GEO END", thin_section) {
+                Ok(()) => println!("thin margins activated"),
+                Err(e) => println!("error updating lib.sty: {}", e),
+            }
         },
         _ => (),
     }
 }
 
+fn replace_section(path: &str, start_marker: &str, end_marker: &str, new_content: &str) -> Result<(), String> {
+    let s = read_to_string(path).map_err(|e| format!("read error: {}", e))?;
+    let start_idx = s.find(start_marker).ok_or("start marker not found")?;
+    let end_idx = s.find(end_marker).ok_or("end marker not found")?;
+    let start_after = start_idx + start_marker.len();
+    let end_after = end_idx /* + end_marker.len() */;
+    // Keep the start marker line and end marker line, replace the inner content
+    let before = &s[..start_after];
+    let after = &s[end_after..];
+    let new_file = format!("{}{}{}", before, new_content, after);
+    write(path, new_file.as_bytes()).map_err(|e| format!("write error: {}", e))?;
+    Ok(())
+}
+
 fn new(name: String) -> Result<(), i32> {
     let path: String = format!("./{name}");
-    create_dir(path.as_str());
+    if let Err(_) = create_dir_all(path.as_str()) {
+        return Err(0);
+    }
+    let main_path = path.clone() + "/main.tex";
+    let lib_path = path.clone() + "/lib.sty";
+
     let mut main_file: File = 
-    match File::create(path.clone() + "/main.tex") {
+    match File::create(main_path.clone()) {
         Ok(v) => v,
         Err(_) => return Err(1),
     };
     let mut lib_file =
-    match File::create(path.clone() + "/lib.sty") {
+    match File::create(lib_path.clone()) {
         Ok(v) => v,
         Err(_) => return Err(2),
-    };
-    let mut ld_file =
-    match File::create(path.clone() + "/ld.sty") {
-        Ok(v) => v,
-        Err(_) => return Err(3),
-    };
-    let mut geo_file =
-    match File::create(path.clone() + "/geo.sty") {
-        Ok(v) => v,
-        Err(_) => return Err(4),
     };
 
     let lib_preamble = 
 
-r#"\usepackage{amssymb}
+r#"% --- auto generated, don't mess with the markers
+\usepackage{amssymb}
 \usepackage{amsmath}
-\usepackage{mathunicode}
-\usepackage{ld}
-\usepackage{geo}
 
+\usepackage{mathunicode}
 \usepackage{graphicx}
 \graphicspath{{.}}
+
+\usepackage[active,tightpage]{preview}
+\renewcommand{\PreviewBorder}{0.75in}
+
+% --- LD START
+\usepackage{xcolor}
+\pagecolor[rgb]{1,1,1}
+\color[rgb]{0,0,0}
+% --- LD END
+
+% --- GEO START
+\usepackage{geometry}
+\geometry{margin=1.25in}
+\geometry{tmargin=1.25in}
+\geometry{bmargin=1.5in}
+% --- GEO END
+
+% --- extra stuff
 
 "#;
 
@@ -114,16 +164,6 @@ r#"\documentclass[10pt]{article}
 
 \end{document}"#;
 
-    let ld_preamble =
-r#"\usepackage{xcolor}
-\pagecolor[rgb]{1,1,1}
-\color[rgb]{0,0,0}"#;
-    let geo_preamble =
-r#"\usepackage{geometry}
-\geometry{margin=1.25in}
-\geometry{tmargin=1.25in}
-\geometry{bmargin=1.5in}"#;
-
     match main_file.write_all(main_preamble.as_bytes()) {
         Ok(_) => (),
         Err(_) => return Err(11),
@@ -131,14 +171,6 @@ r#"\usepackage{geometry}
     match lib_file.write_all(lib_preamble.as_bytes()) {
         Ok(_) => (),
         Err(_) => return Err(12),
-    };
-    match ld_file.write_all(ld_preamble.as_bytes()) {
-        Ok(_) => (),
-        Err(_) => return Err(13),
-    };
-    match geo_file.write_all(geo_preamble.as_bytes()) {
-        Ok(_) => (),
-        Err(_) => return Err(14),
     };
     Ok(())
 }
