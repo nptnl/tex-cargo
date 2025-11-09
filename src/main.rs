@@ -16,14 +16,16 @@ fn main () {
     let light_section =
 r#"
 \usepackage{xcolor}
-\pagecolor[rgb]{1,1,1}
-\color[rgb]{0,0,0}
+\pagecolor{white}
+\color{black}
+\newcommand{\Setcolor}{\color{black}}
 "#;
     let dark_section = 
 r#"
 \usepackage{xcolor}
-\pagecolor[rgb]{0,0,0}
-\color[rgb]{1,1,1}
+\pagecolor{black}
+\color{white}
+\newcommand{\Setcolor}{\color{white}}
 "#;
     let wide_section =
 r#"
@@ -44,6 +46,7 @@ r#"
 \usepackage[active,tightpage]{preview}
 \renewcommand{\PreviewBorder}{0.75in}
 \newcommand{\Newpage}{\end{preview}\begin{preview}}
+\newenvironment{cpreview}{\begin{preview} \Setcolor}{\end{preview}}
 "#;
     let nprev_section = "\n";
 
@@ -154,8 +157,9 @@ r#"% --- auto generated, don't mess with the markers
 
 % --- LD START
 \usepackage{xcolor}
-\pagecolor[rgb]{1,1,1}
-\color[rgb]{0,0,0}
+\pagecolor{white}
+\color{black}
+\newcommand{\Setcolor}{\color{black}}
 % --- LD END
 
 % --- GEO START
